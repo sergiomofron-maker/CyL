@@ -14,6 +14,7 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [now, setNow] = useState<Date>(() => new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<MealType>(MealType.LUNCH);
   const [dishName, setDishName] = useState('');
@@ -27,6 +28,14 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
     loadMeals();
   }, [userId]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   const loadMeals = async () => {
     setLoading(true);
     const data = await mockDb.meals.list(userId);
@@ -35,7 +44,7 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
   };
 
   // Generate 7 days based on selected week
-  const startDate = startOfWeek(new Date(), { weekStartsOn: 1 }); // Monday start of current week
+  const startDate = startOfWeek(now, { weekStartsOn: 1 }); // Monday start of current week
   const viewStartDate = addDays(startDate, weekOffset * 7);
   const days = Array.from({ length: 7 }, (_, i) => addDays(viewStartDate, i));
 
@@ -60,7 +69,7 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
 
     // 2. Generate Ingredients & Add to Shopping List
     // RULE: AI ONLY analyzes the CURRENT WEEK for outputs.
-    const isCurrentWeek = isSameWeek(selectedDate, new Date(), { weekStartsOn: 1 });
+    const isCurrentWeek = isSameWeek(selectedDate, now, { weekStartsOn: 1 });
 
     if (isCurrentWeek) {
         // Generate Ingredients (AI or Dictionary)
@@ -156,7 +165,7 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
             const dayMeals = meals.filter(m => m.date === dateStr);
             const lunch = dayMeals.find(m => m.meal_type === MealType.LUNCH);
             const dinner = dayMeals.find(m => m.meal_type === MealType.DINNER);
-            const isToday = isSameDay(day, new Date());
+            const isToday = isSameDay(day, now);
 
             return (
                 <div key={dateStr} className={`bg-white rounded-xl shadow-sm border ${isToday ? 'border-indigo-400 ring-1 ring-indigo-400' : 'border-gray-100'} overflow-hidden`}>
@@ -233,7 +242,7 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
                         className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                     <p className="text-xs text-gray-500 mt-2">
-                        {isSameWeek(selectedDate, new Date(), { weekStartsOn: 1 }) 
+                        {isSameWeek(selectedDate, now, { weekStartsOn: 1 }) 
                             ? "Se generarán los ingredientes automáticamente." 
                             : "Semana futura: No se añadirán ingredientes a la lista."}
                     </p>
